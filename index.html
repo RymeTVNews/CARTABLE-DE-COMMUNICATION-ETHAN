@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f4ef">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Communication">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Tableau de communication</title>
+<style>
+:root{--bg:#f6f4ef;--ink:#222;--card:#fff}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:var(--ink);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 10px;border-bottom:2px solid #ddd}
+#strip{display:flex;gap:6px;min-height:76px;align-items:center;background:#fff;border:3px solid #444;border-radius:14px;padding:6px;overflow-x:auto}
+.slot{flex:0 0 auto;width:62px;height:62px;border:3px dashed #bbb;border-radius:10px}
+#start{display:flex;gap:6px;margin-top:6px;overflow-x:auto}
+#start button{flex:0 0 auto;font-size:15px;font-weight:700;padding:8px 10px;border:3px solid #2e9e3f;background:#fff;border-radius:12px}
+.chip{flex:0 0 auto;width:62px;text-align:center;font-size:11px;font-weight:600}
+.chip .em{font-size:34px;line-height:1.1}
+.chip img{width:40px;height:40px;object-fit:cover;border-radius:6px}
+.bar{display:flex;gap:6px;margin-top:6px}
+.bar button{flex:1;font-size:16px;font-weight:700;padding:12px 4px;border:0;border-radius:12px;color:#fff}
+#play{background:#2e7d32;flex:2}#back{background:#ef6c00}#clr{background:#c62828}
+nav{display:flex;gap:6px;overflow-x:auto;margin-top:6px;padding-bottom:2px}
+nav button{flex:0 0 auto;font-size:15px;padding:8px 12px;border-radius:20px;border:2px solid #999;background:#fff;font-weight:600}
+nav button.on{background:#222;color:#fff;border-color:#222}
+main{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;padding:10px}
+.t{background:var(--card);border:4px solid;border-radius:14px;padding:8px 2px 6px;text-align:center;min-height:104px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;color:inherit}
+.t:active{transform:scale(.95)}
+.t .em{font-size:46px;line-height:1.1}
+.t img{width:56px;height:56px;object-fit:cover;border-radius:8px}
+.t span.l{font-size:14px;font-weight:700}
+.pers{border-color:#f5c400}.verb{border-color:#2e9e3f}.adj{border-color:#2f6fd6}.nom{border-color:#f08a1c}.soc{border-color:#d4478f}
+footer{padding:6px 12px 24px;font-size:13px;color:#555}
+label.sw{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
+#edit{border:2px solid #222;background:#fff;border-radius:10px;padding:8px 12px;font-weight:700}
+#edit.on{background:#222;color:#fff}
+.sb{margin:0 6px 6px 0;padding:8px 12px;border-radius:10px;border:2px solid #222;background:#fff;font-weight:700}
+dialog{border:0;border-radius:16px;padding:16px;max-width:340px;width:92%}
+dialog input[type=text]{width:100%;font-size:18px;padding:8px;margin:8px 0}
+dialog button{font-size:16px;padding:10px 14px;margin:4px 4px 0 0;border-radius:10px;border:2px solid #222;background:#fff}
+#msg{font-size:13px;color:#b00;margin:4px 0}
+</style></head><body>
+<header>
+<div id="strip" aria-live="polite"></div>
+<div class="bar"><button id="back" aria-label="Effacer le dernier">⌫</button><button id="play">🔊 Dire</button><button id="clr">✖ Vider</button></div>
+<div id="start"></div>
+<nav id="tabs"></nav>
+</header>
+<main id="grid"></main>
+<footer>
+<label class="sw">🗣️ Voix : <select id="voice"></select></label>
+<label class="sw">Voix plus aiguë (garçon) <input type="range" id="pitch" min="0.8" max="1.8" step="0.1" value="1.5"></label>
+<button id="test" class="sb">▶ Tester la voix</button>
+<div id="msg"></div>
+<label class="sw"><input type="checkbox" id="auto" checked> Dire chaque image au toucher</label>
+<button id="edit">✏️ Mode édition (changer image / mot)</button>
+<p>Code couleur : 🟡 personnes · 🟢 actions · 🔵 descriptions · 🟠 choses · 🩷 mots sociaux. En mode édition, touche une case pour y mettre une vraie photo et changer le mot. Les photos restent sur cet appareil.</p>
+<p><button id="exp" class="sb">💾 Sauvegarder mes photos/mots</button><button id="imp" class="sb">📂 Restaurer</button><input type="file" id="impf" accept=".json,application/json" hidden></p>
+</footer>
+<dialog id="dlg"><b>Modifier la case</b><input type="text" id="lab" placeholder="Mot à dire"><input type="file" id="file" accept="image/*">
+<div style="margin:8px 0;padding:8px;background:#f1efe9;border-radius:10px"><b>🎤 Voix enregistrée</b><br>
+<button id="rec">🎤 Enregistrer</button><button id="hear">▶ Écouter</button><button id="delaud">Supprimer</button><div id="recst" style="font-size:13px;margin:4px 0"></div>
+<div style="font-size:13px">Ou ouvrir l'enregistreur du téléphone :</div><input type="file" id="afile" accept="audio/*" capture></div>
+<div><button id="ok">Enregistrer</button><button id="rst">Remettre l'original</button><button id="cx">Annuler</button></div></dialog>
+<script>
+const C={
+"Besoins":[["pers","🙋","Moi"],["verb","🫴","Je veux"],["soc","🚫","Non"],["soc","✅","Oui"],["verb","🆘","Aide"],["verb","🛑","Stop"],["verb","➕","Encore"],["verb","✔️","Fini"],["nom","🚽","les toilettes"],["verb","😴","Dormir"],["adj","🥱","Fatigué"],["verb","🤗","Câlin"],["adj","🔇","Trop de bruit"],["adj","🤕","J'ai mal"],["adj","🥵","J'ai chaud"],["adj","🥶","J'ai froid"],["verb","⏳","Attendre"],["verb","🧘","Pause calme"]],
+"Émotions":[["adj","😀","Content"],["adj","😢","Triste"],["adj","😠","En colère"],["adj","😨","Peur"],["adj","😖","Pas bien"],["adj","😌","Calme"],["adj","🤩","Excité"],["adj","😕","Je ne comprends pas"],["adj","🤒","Malade"],["adj","😳","Gêné"]],
+"Manger":[["verb","🍽️","Manger"],["verb","🥤","Boire"],["adj","😋","J'ai faim"],["adj","🚰","J'ai soif"],["nom","💧","de l'eau"],["nom","🥛","du lait"],["nom","🧃","du jus"],["nom","🍎","une pomme"],["nom","🍌","une banane"],["nom","🍊","une orange"],["nom","🍞","du pain"],["nom","🧀","du fromage"],["nom","🍝","des pâtes"],["nom","🍚","du riz"],["nom","🍗","du poulet"],["nom","🥕","une carotte"],["nom","🍪","un biscuit"],["nom","🍦","un dessert"],["nom","🥣","des céréales"]],
+"Actions":[["verb","🎮","Jouer"],["verb","📺","Regarder la télévision"],["verb","🎵","de la musique"],["verb","📖","Lire"],["verb","✏️","Dessiner"],["verb","🚶","Marcher"],["verb","🏃","Courir"],["verb","🛁","Se laver"],["verb","🦷","Brosser les dents"],["verb","👕","S'habiller"],["verb","🚗","Aller en voiture"],["verb","🏠","Rentrer"],["verb","🛝","Aller dehors"],["verb","🫧","des bulles"],["verb","🧩","un puzzle"],["verb","📱","la tablette"]],
+"Lieux":[["nom","🏠","à la maison"],["nom","🏫","à l'école"],["nom","🛏️","dans la chambre"],["nom","🛋️","dans le salon"],["nom","🍳","dans la cuisine"],["nom","🚿","dans la salle de bain"],["nom","🌳","au parc"],["nom","🛒","au magasin"],["nom","🏥","chez le médecin"],["nom","🚗","dans la voiture"],["nom","🚌","dans l'autobus"]],
+"Personnes":[["pers","👩","Maman"],["pers","👨","Papa"],["pers","👵","Mamie"],["pers","👴","Papi"],["pers","👧","ma sœur"],["pers","👦","mon frère"],["pers","🧑‍🏫","l'enseignant"],["pers","🧑‍⚕️","le docteur"],["pers","🐶","le chien"],["pers","🐱","le chat"],["pers","🧑‍🤝‍🧑","un ami"]],
+"Mots":[["soc","👋","Bonjour"],["soc","👋","Au revoir"],["soc","🙏","S'il te plaît"],["soc","😊","Merci"],["soc","🙇","Pardon"],["soc","❓","Quoi ?"],["soc","📍","Où ?"],["soc","🕒","Quand ?"],["adj","⬆️","Plus"],["adj","⬇️","Moins"],["adj","🐢","Lentement"],["adj","⚡","Vite"],["adj","👍","Bien"],["adj","🔴","Rouge"],["adj","🔵","Bleu"],["adj","🟢","Vert"],["adj","🟡","Jaune"]]
+};
+let pendA=null,cur="Besoins",sentence=[],edit=false,target=null,pend=null;
+let ov={};try{ov=JSON.parse(localStorage.getItem("ov")||"{}")}catch(e){}
+const save=()=>{try{localStorage.setItem("ov",JSON.stringify(ov))}catch(e){alert("Mémoire pleine : photo non sauvegardée")}};
+const $=s=>document.querySelector(s);
+const key=(c,i)=>c+"|"+i;
+function item(c,i){const [k,e,l]=C[c][i];const o=ov[key(c,i)]||{};return{k,e,l:o.l||l,img:o.img,aud:o.aud}}
+function visual(it){return it.img?`<img src="${it.img}" alt="">`:`<div class="em">${it.e}</div>`}
+function tabs(){const n=$("#tabs");n.innerHTML="";for(const c in C){const b=document.createElement("button");b.textContent=c;if(c===cur)b.className="on";b.onclick=()=>{cur=c;tabs();grid()};n.appendChild(b)}}
+function grid(){const g=$("#grid");g.innerHTML="";C[cur].forEach((_,i)=>{const it=item(cur,i);const b=document.createElement("button");b.className="t "+it.k;b.innerHTML=visual(it)+`<span class="l">${it.l}</span>`;b.onclick=()=>edit?openEdit(i):pick(it);g.appendChild(b)})}
+let voices=[];
+function loadV(){try{voices=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith("fr"))}catch(e){$("#msg").textContent="Synthèse vocale indisponible.";return}
+const s=$("#voice");s.innerHTML=voices.map((v,i)=>`<option value="${i}">${v.name}</option>`).join("")||"<option>Voix par défaut</option>";
+let sv=null;try{sv=localStorage.getItem("voice")}catch(e){}
+let i=voices.findIndex(v=>v.name===sv);
+if(i<0)i=voices.findIndex(v=>/thomas|daniel|henri|paul|homme|male|frb|frd/i.test(v.name+" "+v.voiceURI));
+if(i<0)i=0;s.value=i}
+function say(t,cb){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="fr-FR";const v=voices[+$("#voice").value];if(v)u.voice=v;u.pitch=+$("#pitch").value;u.rate=1;if(cb){u.onend=cb;u.onerror=cb}speechSynthesis.speak(u)}catch(e){if(cb)cb()}}
+function speakP(it){return new Promise(r=>{if(it.aud){try{const a=new Audio(it.aud);a.onended=r;a.onerror=r;a.play().catch(r)}catch(e){r()}}else say(it.l,r)})}
+function pick(it){sentence.push(it);strip();if($("#auto").checked)speakP(it)}
+function strip(){const s=$("#strip");
+let h=sentence.map(it=>`<div class="chip">${it.img?`<img src="${it.img}">`:`<div class="em">${it.e}</div>`}${it.l}</div>`).join("");
+for(let i=sentence.length;i<3;i++)h+='<div class="slot"></div>';
+s.innerHTML=h;s.scrollLeft=9999}
+const ST=[["🫴","Je veux"],["🍽️","Manger"],["🥤","Boire"],["🚫","Je ne veux pas"],["😖","J'ai"],["➡️","Je vais"],["🆘","Aide"]];
+ST.forEach(([e,l])=>{const b=document.createElement("button");b.textContent=e+" "+l;b.onclick=()=>pick({k:"verb",e,l});$("#start").appendChild(b)});
+strip();
+$("#play").onclick=async()=>{for(const it of sentence.slice())await speakP(it)};
+$("#back").onclick=()=>{sentence.pop();strip()};
+$("#clr").onclick=()=>{sentence=[];strip()};
+$("#edit").onclick=e=>{edit=!edit;e.target.classList.toggle("on",edit)};
+function openEdit(i){target=i;pend=null;pendA=null;$("#recst").textContent="";$("#rec").textContent="🎤 Enregistrer";$("#afile").value="";const it=item(cur,i);$("#lab").value=it.l;$("#file").value="";$("#dlg").showModal()}
+$("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const c=document.createElement("canvas");c.width=c.height=160;const x=c.getContext("2d");const s=Math.min(im.width,im.height);x.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,160,160);pend=c.toDataURL("image/jpeg",.75)};im.src=URL.createObjectURL(f)};
+$("#ok").onclick=()=>{const k=key(cur,target);const o=ov[k]||{};o.l=$("#lab").value.trim()||C[cur][target][2];if(pend)o.img=pend;if(pendA)o.aud=pendA;ov[k]=o;save();$("#dlg").close();grid()};
+$("#rst").onclick=()=>{delete ov[key(cur,target)];save();$("#dlg").close();grid()};
+$("#cx").onclick=()=>$("#dlg").close();
+try{const p=localStorage.getItem("pitch");if(p)$("#pitch").value=p}catch(e){}
+$("#voice").onchange=()=>{try{localStorage.setItem("voice",voices[+$("#voice").value].name)}catch(e){}say("Je veux jouer")};
+$("#pitch").onchange=()=>{try{localStorage.setItem("pitch",$("#pitch").value)}catch(e){}say("Je veux jouer")};
+$("#test").onclick=()=>say("Bonjour, je veux jouer");
+let mr,chunks=[];
+function toData(b){const r=new FileReader();r.onload=()=>{if(r.result.length>700000){$("#recst").textContent="Trop long : 5 secondes maximum.";return}pendA=r.result;$("#recst").textContent="Enregistré ✔ Appuie sur Enregistrer en bas pour garder."};r.readAsDataURL(b)}
+$("#rec").onclick=async()=>{
+if(mr&&mr.state==="recording"){mr.stop();return}
+try{const st=await navigator.mediaDevices.getUserMedia({audio:true});mr=new MediaRecorder(st);chunks=[];
+mr.ondataavailable=e=>chunks.push(e.data);
+mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());toData(new Blob(chunks,{type:mr.mimeType}));$("#rec").textContent="🎤 Refaire"};
+mr.start();$("#rec").textContent="⏹ Arrêter";$("#recst").textContent="Parle maintenant…";
+setTimeout(()=>{if(mr.state==="recording")mr.stop()},5000)}
+catch(e){$("#recst").textContent="Micro indisponible : utilise l'enregistreur du téléphone ci-dessous."}};
+$("#afile").onchange=e=>{const f=e.target.files[0];if(f)toData(f)};
+$("#hear").onclick=()=>{const a=pendA||(ov[key(cur,target)]||{}).aud;if(a)new Audio(a).play().catch(()=>{})};
+$("#delaud").onclick=()=>{pendA=null;const k=key(cur,target);if(ov[k]){delete ov[k].aud;save()}$("#recst").textContent="Voix supprimée"};
+$("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(ov)],{type:"application/json"}));a.download="tableau-ethan-sauvegarde.json";a.click()};
+$("#imp").onclick=()=>$("#impf").click();
+$("#impf").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{ov=JSON.parse(r.result);save();grid();alert("Restauré ✔")}catch(x){alert("Fichier invalide")}};r.readAsText(f)};
+loadV();try{speechSynthesis.onvoiceschanged=loadV}catch(e){}
+tabs();grid();
+if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
+</script></body></html>
